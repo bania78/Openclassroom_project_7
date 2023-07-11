@@ -4,6 +4,7 @@ const data = require('../public/data/data.json');
 const { findOne } = require('./models/Book');
 const bookRoutes = require('./root/book')
 const userRoutes = require('./root/user')
+const path = require('path');
 
 const app = express();
 app.use(express.json());
@@ -31,5 +32,6 @@ app.use((req, res, next) => {
 
 app.use('/api/books', bookRoutes);
 app.use('/api/auth', userRoutes);
+app.use('/images', express.static(path.join(__dirname, 'images')))
 
 module.exports = app;
