@@ -3,7 +3,7 @@ const Book = require('../models/Book');
 exports.createBooks = (req, res, next) => {
     const bookObject = JSON.parse(req.body.book)
     delete bookObject._id;
-    delete bookObject.userId;
+    delete bookObject._userId;
     const book = new Book({
         ...bookObject,
         userId: req.auth.userId,
@@ -21,7 +21,7 @@ exports.getBooks = (req, res, next) => {
 };
 
 exports.getBooksbyId = (req, res, next) => {
-    Book.findOne({id: req.params._id})
+    Book.findOne({_id: req.params.id})
     .then(books => res.status(200).json(books))
     .catch(error => res.status(400).json({ error }));
 }
@@ -37,8 +37,34 @@ exports.getBooksRating = (req, res, next) => {
         if (books === null) {
             res.status(400)
         } else {
-            res.status(200).json({messag: 'books' })
+            res.status(200).json(books)
         }
     })
     .catch(error => res.status(400).json({ error }));
 }
+
+exports.modifBook = (req, res, next) => {
+    Book.updateOne({ _id: req.params.id }, { ...req.body, _id: req.params.id })
+      .then(() => res.status(200).json({ message: 'Objet modifié !'}))
+      .catch(error => res.status(400).json({ error }));
+};
+
+exports.deleteBook = (req, res, next) => {
+    Book.deleteOne({ _id: req.params.id })
+      .then(() => res.status(200).json({ message: 'Objet supprimé !'}))
+      .catch(error => res.status(400).json({ error }));
+};
+
+exports.setRate = (req, res, next) => {
+    new_rate = req.body;
+    new_rate.grade = new_rate.rating;
+    Book.findOne({_id: req.params.id})
+    .then((book) => {
+        let rate = book.ratings;
+        rate.push(new_rate);
+        Book.updateOne({ _id: req.params.id }, { ratings: rate })
+        .then(() => res.status(200).json(book))
+        .catch(error => res.status(400).json({ error }));
+    })
+    .catch(error => res.status(400).json({ error }));
+};
