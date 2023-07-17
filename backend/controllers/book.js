@@ -27,17 +27,25 @@ exports.getBooksbyId = (req, res, next) => {
 }
 
 exports.getBooksRating = (req, res, next) => {
+    const sortByMapped = (map,compareFn) => (a,b) => compareFn(map(a),map(b));
+    const byValue = (a,b) => a - b;
+    const toRating = e => e.averageRating;
+    const byRating = sortByMapped(toRating,byValue);
     Book.find()
     .then((books) => {
-        /*books.sort();
-        let rate = [];
-        rate.append(books[0]);
-        rate.append(books[1]);
-        rate.append(books[2]);*/
         if (books === null) {
             res.status(400)
         } else {
-            res.status(200).json(books)
+            let resu = []
+            let sortBooks = books.sort(byRating);
+            sortBooks = sortBooks.reverse();
+            resu.push(sortBooks[0]);
+            if (books.length >= 2) {
+                resu.push(sortBooks[1]);
+                if (books.length >= 3)
+                    resu.push(sortBooks[2]);
+            }
+            res.status(200).json(resu);
         }
     })
     .catch(error => res.status(400).json({ error }));
@@ -60,9 +68,15 @@ exports.setRate = (req, res, next) => {
     new_rate.grade = new_rate.rating;
     Book.findOne({_id: req.params.id})
     .then((book) => {
+        let average = new_rate.grade;
         let rate = book.ratings;
+        let i = 0;
+        for (i; i < rate.length; i++) {
+            average = average + rate[i].grade;
+        }
+        average = average / (i + 1);
         rate.push(new_rate);
-        Book.updateOne({ _id: req.params.id }, { ratings: rate })
+        Book.updateOne({ _id: req.params.id }, { $set: { averageRating: average, ratings: rate }})
         .then(() => res.status(200).json(book))
         .catch(error => res.status(400).json({ error }));
     })
