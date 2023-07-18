@@ -1,24 +1,31 @@
 const multer = require('multer');
+const sharp = require('sharp');
+const fs = require('fs');
 
-const MIME_TYPES = {
-    'image/jpg': 'jpg',
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp'
-}
+const storage = multer.memoryStorage();
 
-const storage = multer.diskStorage({
-    destination: (req, file, callback) => {
-        callback(null, './images')
-    },
-    filename: (req, file, callback) => {
-        const name = file.originalname.split(' ').join('_');
-        const filenameArray = name.split('.')
-		filenameArray.pop()
-		const filenameWithoutExtention = filenameArray.join('.')
-        const extension = MIME_TYPES[file.mimetype];
-        callback(null, filenameWithoutExtention + Date.now() + '.' + extension);
-    }
-})
+const upload = multer({ storage }).single('image');
 
-module.exports = multer({ storage }).single('image');
+module.exports = (req, res, next) => {
+    upload(req, res, async (err) => {
+        if (req.file === undefined) {
+            next();
+        } else {
+            fs.access("./images", (error) => {
+                if (error) {
+                    fs.mkdirSync("./images");
+                }
+            });
+            const { buffer, originalname } = req.file;
+            const name = originalname.split(' ').join('_');
+            const filenameArray = name.split('.')
+            filenameArray.pop()
+            const filenameWithoutExtention = filenameArray.join('.')
+            const ref = `${filenameWithoutExtention}${Date.now()}.webp`;
+            req.file.filename = ref;
+            await sharp(buffer)
+                .webp({ quality: 20 })
+                .toFile("./images/" + ref);
+            next();
+        }
+})}
